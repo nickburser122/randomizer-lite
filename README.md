@@ -1,4 +1,4 @@
-# Randomizer
+# Randomizer lite
 
 Static randomizer app. Entry: `index.html` (tool selectable by hash: `#number`, `#list`, `#dice`, `#coin`, `#password`, `#color`, `#qr`).
 
@@ -18,6 +18,3 @@ Space or Enter generates. Clicking any value copies it.
 - Storage: `localStorage` keys `rz:settings`, `rz:history` (last 30, passwords and QR text never logged), `rz:tool`
 - Dependencies: `qrcode-generator@1.4.4` via jsDelivr, Google Fonts (Fraunces, DM Mono)
 - Files: `index.html`, `css/style.css`, `js/app.js`
-
-## Status
-Not yet browser-tested. Not deployed. Built without access to the original GitHub repo. Image to QR is not included.
