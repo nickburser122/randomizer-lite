@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Randomizer</title>
-<meta name="description" content="Random numbers, list picks, dice, coins, passwords, colors and QR codes.">
+<meta name="description" content="Random numbers, list picks, dice, coins, passwords, passphrases, colors and QR codes.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" id="tc">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1ede6">
@@ -27,6 +27,7 @@
       <button type="button" data-tool="dice">Dice</button>
       <button type="button" data-tool="coin">Coin</button>
       <button type="button" data-tool="password">Password</button>
+      <button type="button" data-tool="passphrase">Passphrase</button>
       <button type="button" data-tool="color">Color</button>
       <button type="button" data-tool="qr">QR</button>
     </nav>
@@ -94,6 +95,23 @@
         <label class="t"><input id="pDigits" type="checkbox" checked><i></i>0–9</label>
         <label class="t"><input id="pSymbols" type="checkbox"><i></i>Symbols</label>
         <label class="t w"><input id="pClear" type="checkbox"><i></i>Skip look-alike characters</label>
+      </fieldset>
+
+      <fieldset data-panel="passphrase" hidden>
+        <label class="f w"><span>Words <output id="wLenOut"></output></span><input id="wLen" type="range" min="3" max="12" value="5"></label>
+        <span class="legend w">Separator</span>
+        <div class="seg" role="radiogroup" aria-label="Separator">
+          <label><input type="radio" name="wSep" id="wHyphen" value="-" checked><span>Hyphen</span></label>
+          <label><input type="radio" name="wSep" id="wSpace" value=" "><span>Space</span></label>
+          <label><input type="radio" name="wSep" id="wDot" value="."><span>Dot</span></label>
+        </div>
+        <span class="legend w">Word pool</span>
+        <div class="seg" role="radiogroup" aria-label="Word pool">
+          <label><input type="radio" name="wPool" id="wCommon" value="common" checked><span>Common</span></label>
+          <label><input type="radio" name="wPool" id="wAll" value="all"><span>All</span></label>
+        </div>
+        <label class="t"><input id="wCap" type="checkbox"><i></i>Capitalize</label>
+        <label class="t"><input id="wNum" type="checkbox"><i></i>Add a digit</label>
       </fieldset>
 
       <fieldset data-panel="color" hidden>

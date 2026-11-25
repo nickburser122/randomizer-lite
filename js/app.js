@@ -111,6 +111,19 @@
         return { items: [shuffle(c).join('')], mono: true, secret: true, note: `${len} characters · ${Math.round(len * Math.log2(all.length))} bits` };
       }
     },
+    passphrase: {
+      label: 'Passphrase',
+      live: true,
+      run() {
+        if (!words) { loadWords(); return { empty: 'Loading words', wait: true }; }
+        const pool = pick('wPool') === 'common' ? Math.min(8192, words.length) : words.length;
+        const n = int('wLen', 3, 12, 5), cap = $('wCap').checked;
+        const a = Array.from({ length: n }, () => { const s = words[rnd(pool)]; return cap ? s[0].toUpperCase() + s.slice(1) : s; });
+        let bits = n * Math.log2(pool);
+        if ($('wNum').checked) { a[rnd(n)] += rnd(10); bits += Math.log2(10 * n); }
+        return { items: [a.join(pick('wSep'))], mono: true, secret: true, note: `${n} words · ${Math.floor(bits)} bits · pool ${pool.toLocaleString('en')}` };
+      }
+    },
     color: {
       label: 'Color',
       run() {
@@ -158,6 +171,7 @@
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const toggled = e => e.type === 'checkbox' || e.type === 'radio';
   let cur = 'number', timer, saving = 0, frame = 0, ptr = false;
+  let words, loading = false;
   let hist = store.get('rz:history', []);
   if (!Array.isArray(hist)) hist = [];
 
@@ -190,6 +204,27 @@
     $('lCountF').hidden = $('lRemoveF').hidden = m !== 'pick';
     $('lGroupsF').hidden = m !== 'groups';
     $('pLenOut').textContent = $('pLen').value;
+    $('wLenOut').textContent = $('wLen').value;
+  }
+
+  function loadWords() {
+    if (loading || words) return;
+    loading = true;
+    let w;
+    const done = a => {
+      loading = false;
+      if (w) w.terminate();
+      if (a && a.length > 1) words = a;
+      const r = results.passphrase;
+      if (cur !== 'passphrase' || !r || !r.wait) return;
+      if (words) run(); else show({ empty: 'Word list did not load' });
+    };
+    try {
+      w = new Worker('js/words.js');
+      w.onmessage = e => done(e.data);
+      w.onerror = () => done();
+      w.postMessage(0);
+    } catch { setTimeout(done); }
   }
 
   function show(r, still) {
@@ -301,6 +336,7 @@
     store.set('rz:tool', id);
     try { history.replaceState(null, '', '#' + id); } catch {}
     sync();
+    if (id === 'passphrase') loadWords();
     if (id === 'qr') run(false);
     else show(results[id] || { empty: 'Press Generate', idle: true });
   }

@@ -1,6 +1,6 @@
 # Randomizer lite
 
-Static randomizer app, version 2. Entry: `index.html` (tool selectable by hash: `#number`, `#list`, `#dice`, `#coin`, `#password`, `#color`, `#qr`). Imported from `nickburser122/randomizer-lite`.
+Static randomizer app, version 2. Entry: `index.html` (tool selectable by hash: `#number`, `#list`, `#dice`, `#coin`, `#password`, `#passphrase`, `#color`, `#qr`). Imported from `nickburser122/randomizer-lite`.
 
 ## Tools
 - Number: range, count up to 1000, no repeats, sorted, sum
@@ -8,12 +8,13 @@ Static randomizer app, version 2. Entry: `index.html` (tool selectable by hash: 
 - Dice: d4 to d100, up to 100 dice, total
 - Coin: up to 500 flips with tally
 - Password: length 4 to 64, character sets, look-alike filter, entropy estimate, regenerates live while options change
+- Passphrase: 3 to 12 words, hyphen, space or dot separator, common (first 8,192) or full word pool, optional capitals and digit, entropy estimate, never logged to history
 - Color: any, vivid, pastel or deep, up to 8 swatches
 - QR: plain text to QR, four error correction levels, PNG export, "As QR" from any result
 
 ## Keys
 - Space or Enter generates, Ctrl/Cmd+Enter generates from a text area
-- 1 to 7 switch tools
+- 1 to 8 switch tools (Passphrase is 6, Color 7, QR 8)
 - Clicking any value or history row copies it
 
 ## New in version 2
@@ -29,4 +30,5 @@ Static randomizer app, version 2. Entry: `index.html` (tool selectable by hash: 
 - Storage: `localStorage` keys `rz:settings`, `rz:history` (last 30, passwords and QR text never logged), `rz:tool`, `rz:theme` (unchanged from version 1)
 - Fonts: Fraunces variable (opsz, wght) and DM Mono 400/500, latin and latin-ext, in `fonts/` with their OFL licence texts
 - QR: `qrcode-generator@1.4.4`, unmodified, in `js/vendor/qrcode.js` (MIT, its header comments are kept)
-- Files: `index.html`, `css/style.css`, `js/app.js`, `js/vendor/qrcode.js`, `fonts/`
+- Passphrase words: `words.json` (uploaded 50,000 word bank, frequency ordered) is fetched and filtered by the Web Worker `js/words.js` to unique lowercase words of 3 to 8 letters, loaded the first time the Passphrase tool is opened
+- Files: `index.html`, `css/style.css`, `js/app.js`, `js/words.js`, `js/vendor/qrcode.js`, `words.json`, `fonts/`
