@@ -97,6 +97,7 @@
     },
     password: {
       label: 'Password',
+      live: true,
       run() {
         const clear = $('pClear').checked;
         const sets = [
@@ -126,6 +127,7 @@
     qr: {
       label: 'QR',
       quiet: true,
+      live: true,
       run() {
         const t = $('qText').value;
         if (!t) return { empty: 'Enter text to encode' };
@@ -150,19 +152,28 @@
     }
   };
 
-  const out = $('out'), results = {};
+  const out = $('out'), nav = $('nav'), results = {};
   const fields = [...document.querySelectorAll('#controls input, #controls textarea')];
+  const order = [...nav.querySelectorAll('button')].map(b => b.dataset.tool);
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const toggled = e => e.type === 'checkbox' || e.type === 'radio';
-  let cur = 'number', timer;
+  let cur = 'number', timer, saving = 0, frame = 0, ptr = false;
   let hist = store.get('rz:history', []);
   if (!Array.isArray(hist)) hist = [];
 
   const text = r => r.copy ?? r.items.join(r.sep || ', ');
+  const pulse = (el, frames, ms) => { if (el && el.animate && !calm.matches) el.animate(frames, { duration: ms, easing: 'ease-out' }); };
 
-  function persist() {
+  function flush() {
+    clearTimeout(saving);
+    saving = 0;
     const o = {};
     fields.forEach(e => { o[e.id] = toggled(e) ? e.checked : e.value; });
     store.set('rz:settings', o);
+  }
+
+  function persist() {
+    if (!saving) saving = setTimeout(flush, 200);
   }
 
   function restore() {
@@ -181,11 +192,12 @@
     $('pLenOut').textContent = $('pLen').value;
   }
 
-  function show(r) {
+  function show(r, still) {
     results[cur] = r;
     $('note').textContent = r.note || '';
     const box = document.createElement('div');
     box.className = 'items';
+    if (still) box.classList.add('still');
     if (r.empty) { box.classList.add('empty'); box.textContent = r.empty; }
     else if (r.node) box.append(r.node);
     else {
@@ -194,12 +206,14 @@
       if (r.rows) s = Math.max(s, count <= 4 && long <= 18 ? 3 : count <= 10 && long <= 40 ? 4 : 5);
       box.classList.add('s' + s);
       for (const k of ['rows', 'mono', 'swatch']) if (r[k]) box.classList.add(k);
+      const bulk = count > 40;
+      if (bulk) box.classList.add('bulk');
       r.items.forEach((t, i) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = t;
         b.title = 'Copy';
-        b.style.setProperty('--i', Math.min(i, 24));
+        if (!bulk) b.style.setProperty('--i', Math.min(i, 24));
         if (r.swatch) {
           const v = parseInt(t.slice(1), 16);
           b.style.background = t;
@@ -212,26 +226,37 @@
     out.scrollTop = 0;
   }
 
-  function run(log = true) {
+  function run(log = true, still = false) {
     const t = tools[cur], r = t.run();
-    show(r);
+    show(r, still);
     persist();
     if (log && !r.empty && !r.secret && !t.quiet) {
       hist.unshift({ t: t.label, v: text(r).slice(0, 600) });
       hist = hist.slice(0, 30);
       store.set('rz:history', hist);
-      drawHist();
+      drawHist(true);
     }
   }
 
-  function drawHist() {
-    $('hist').replaceChildren(...hist.map(h => {
+  function live() {
+    if (frame) return;
+    const id = cur;
+    frame = requestAnimationFrame(() => { frame = 0; if (cur === id) run(false, true); });
+  }
+
+  function fire() {
+    pulse($('go'), [{ scale: 1 }, { scale: .95 }, { scale: 1 }], 240);
+    run();
+  }
+
+  function drawHist(fresh) {
+    $('hist').replaceChildren(...hist.map((h, i) => {
       const li = document.createElement('li'), b = document.createElement('button'), a = document.createElement('span'), v = document.createElement('span');
+      if (fresh && !i) li.className = 'new';
       b.type = 'button';
       a.textContent = h.t;
       v.textContent = String(h.v).replace(/\n/g, ' · ');
       b.append(a, v);
-      b.onclick = () => copy(String(h.v));
       li.append(b);
       return li;
     }));
@@ -246,7 +271,8 @@
     timer = setTimeout(() => el.classList.remove('on'), 1100);
   }
 
-  async function copy(t) {
+  async function copy(t, el) {
+    pulse(el, [{ opacity: 1 }, { opacity: .4 }, { opacity: 1 }], 320);
     try { await navigator.clipboard.writeText(t); }
     catch {
       const a = document.createElement('textarea');
@@ -263,7 +289,11 @@
   function openTool(id) {
     if (!tools[id]) id = 'number';
     cur = id;
-    document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.tool === id));
+    nav.querySelectorAll('button').forEach(b => {
+      const on = b.dataset.tool === id;
+      b.setAttribute('aria-current', on);
+      if (on) nav.scrollTo({ left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2 });
+    });
     document.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== id; });
     $('label').textContent = tools[id].label;
     $('copy').hidden = $('toqr').hidden = id === 'qr';
@@ -272,12 +302,12 @@
     try { history.replaceState(null, '', '#' + id); } catch {}
     sync();
     if (id === 'qr') run(false);
-    else show(results[id] || { empty: 'Press Generate' });
+    else show(results[id] || { empty: 'Press Generate', idle: true });
   }
 
-  $('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) openTool(b.dataset.tool); });
+  nav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) openTool(b.dataset.tool); });
   $('go').addEventListener('click', () => run());
-  $('copy').addEventListener('click', () => { const r = results[cur]; if (r && !r.empty) copy(text(r)); });
+  $('copy').addEventListener('click', () => { const r = results[cur]; if (r && !r.empty) copy(text(r), out.firstChild); });
   $('toqr').addEventListener('click', () => {
     const r = results[cur];
     if (!r || r.empty) return;
@@ -293,18 +323,38 @@
     a.click();
   });
   $('clear').addEventListener('click', () => { hist = []; store.set('rz:history', hist); drawHist(); });
-  out.addEventListener('click', e => { const b = e.target.closest('button'); if (b) copy(b.textContent); });
+  $('hist').addEventListener('click', e => {
+    const li = e.target.closest('li');
+    if (li) copy(String(hist[[...li.parentNode.children].indexOf(li)].v), li);
+  });
+  out.addEventListener('click', e => { const b = e.target.closest('button'); if (b) copy(b.textContent, b); });
 
   $('controls').addEventListener('submit', e => e.preventDefault());
-  $('controls').addEventListener('input', () => { sync(); persist(); if (cur === 'qr') run(false); });
+  $('controls').addEventListener('input', () => {
+    sync();
+    persist();
+    const r = results[cur];
+    if (tools[cur].live && r && !r.idle) live();
+  });
 
+  document.addEventListener('pointerdown', () => { ptr = true; }, true);
+  document.addEventListener('click', () => {
+    const a = document.activeElement;
+    if (ptr && a && (a.tagName === 'BUTTON' || (a.tagName === 'INPUT' && toggled(a)))) a.blur();
+  });
   document.addEventListener('keydown', e => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const el = e.target, tag = el.tagName;
-    if (e.key === 'Enter' && tag === 'INPUT' && /number|range/.test(el.type)) { e.preventDefault(); run(); }
-    else if (e.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|SELECT/.test(tag)) { e.preventDefault(); run(); }
+    ptr = false;
+    const el = e.target, tag = el.tagName, mod = e.ctrlKey || e.metaKey;
+    if (e.key === 'Enter' && mod && tag === 'TEXTAREA') { e.preventDefault(); fire(); return; }
+    if (mod || e.altKey) return;
+    if (e.key === 'Enter' && tag === 'INPUT' && /number|range/.test(el.type)) { e.preventDefault(); fire(); }
+    else if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    else if (e.code === 'Space' && tag !== 'BUTTON') { e.preventDefault(); fire(); }
+    else if (order[e.key - 1]) openTool(order[e.key - 1]);
   });
   window.addEventListener('hashchange', () => openTool(location.hash.slice(1)));
+  window.addEventListener('pagehide', () => { if (saving) flush(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && saving) flush(); });
 
   restore();
   drawHist();
