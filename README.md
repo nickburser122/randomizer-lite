@@ -30,8 +30,3 @@ Static randomizer app, version 2. Entry: `index.html` (tool selectable by hash: 
 - Fonts: Fraunces variable (opsz, wght) and DM Mono 400/500, latin and latin-ext, in `fonts/` with their OFL licence texts
 - QR: `qrcode-generator@1.4.4`, unmodified, in `js/vendor/qrcode.js` (MIT, its header comments are kept)
 - Files: `index.html`, `css/style.css`, `js/app.js`, `js/vendor/qrcode.js`, `fonts/`
-
-## Not done
-- Not deployed
-- No service worker, so a hosted copy still needs the network for its first load
-- Candidate next tool: word-based passphrases (needs a bundled word list)
